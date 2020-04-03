@@ -1,9 +1,9 @@
 /***************************************************************************
-Sample code taken and adapted from various libraries and integrated into one sketch.
+  Sample code taken and adapted from various libraries and integrated into one sketch.
 
-• Adafruit_HTU21DF
-• Adafruit_BME280
-• ClosedCube_OPT3001
+  • Adafruit_HTU21DF
+  • Adafruit_BME280
+  • ClosedCube_OPT3001
 
  ***************************************************************************/
 
@@ -19,7 +19,7 @@ Sample code taken and adapted from various libraries and integrated into one ske
 #define BME_MISO 12
 #define BME_MOSI 11
 #define BME_CS 10
-#define SEALEVELPRESSURE_HPA (1017.9)
+#define SEALEVELPRESSURE_HPA (1018.7)
 
 ClosedCube_OPT3001 opt3001;
 Adafruit_BME280 bme; // I2C
@@ -29,7 +29,30 @@ unsigned long delayTime;
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial);   // time to get serial running
+  while (!Serial); // time to get serial running
+  while (Serial.available()) char c = Serial.read();
+  Serial.println("\n\nInitializing RAK811");
+  Serial1.begin(115200);
+  while (!Serial1); // time to get serial running
+  while (Serial1.available()) Serial.write(Serial1.read());
+  delay(1000);
+  Serial1.println("at+version");
+  delay(1000);
+  while (!Serial1.available()) ;
+  while (Serial1.available()) Serial.write(Serial1.read());
+  Serial1.println("at+set_config=lora:work_mode:1");
+  delay(1000);
+  while (!Serial1.available()) ;
+  while (Serial1.available()) Serial.write(Serial1.read());
+  Serial1.println("at+set_config=lorap2p:869525000:9:0:1:8:20");
+  delay(1000);
+  while (!Serial1.available()) ;
+  while (Serial1.available()) Serial.write(Serial1.read());
+  Serial1.println("at+send=lorap2p:DECAFBAD");
+  // Private joke, don't ask
+  delay(1000);
+  while (Serial1.available()) Serial.write(Serial1.read());
+
   Wire.begin();
   Serial.println("\nI2C Scanner");
   byte error, address;
@@ -75,7 +98,7 @@ void setup() {
     Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
     Serial.print("        ID of 0x60 represents a BME 280.\n");
     Serial.print("        ID of 0x61 represents a BME 680.\n");
-    while (1) delay(10);
+    while (1) delay(100);
   }
   Serial.println("  Init done.");
   Serial.println("\nHTU21D");
@@ -94,23 +117,41 @@ void loop() {
 }
 
 void printValues() {
+  float temp = bme.readTemperature(), hum = bme.readHumidity(), pressure = bme.readPressure() / 100.0F, alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
   Serial.print("\nBME280\n  Temperature = ");
-  Serial.print(bme.readTemperature());
+  Serial.print(temp);
   Serial.println(" *C");
   Serial.print("  Humidity = ");
-  Serial.print(bme.readHumidity());
+  Serial.print(hum);
   Serial.println(" %");
   Serial.print("  Pressure = ");
-  Serial.print(bme.readPressure() / 100.0F);
+  Serial.print(pressure);
   Serial.print(" hPa. MSL: ");
   Serial.print(SEALEVELPRESSURE_HPA);
   Serial.println(" hPa.");
   Serial.print("  Approx. Altitude = ");
-  Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
+  Serial.print(alt);
   Serial.println(" m");
+  char buff0[128], buff1[256];
+  memset(buff0, 0, 128);
+  memset(buff1, 0, 256);
+  String buff = "T: "+String(temp)+" *C, H: "+String(hum)+"%, P: "+String(pressure)+" hPa, Alt: "+String(alt)+" m";
+  buff.toCharArray(buff0, buff.length()+1);
+  Serial.println(buff0);
+  uint8_t data_length = strlen(buff0), cnt = 0;
+  char const hex_chars[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+  for (int i = 0; i < data_length; ++i) {
+  char const byte = buff0[i];
+    buff1[cnt++] = hex_chars[(byte & 0xF0) >> 4];
+    buff1[cnt++] = hex_chars[(byte & 0x0F) >> 0];
+  }
+  Serial1.print("at+send=lorap2p:");
+  Serial1.println(buff1);
+
   OPT3001 result = opt3001.readResult();
   printResult("OPT3001", result);
-  float temp = htu.readTemperature();
+
+  temp = htu.readTemperature();
   float rel_hum = htu.readHumidity();
   Serial.print("HTU21D\n  Temperature: "); Serial.print(temp); Serial.println(" *C");
   Serial.print("  Humidity: "); Serial.print(rel_hum); Serial.println(" %");
