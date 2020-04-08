@@ -15,9 +15,16 @@ Code displays data from all 3 sensors on the Serial terminal, and sends data fro
 
 My setup is pretty unique, but is easily reproducible with similar sensors and boards.
 
+----
+
 [1] https://doc.rakwireless.com/rak811-lora-evaluation-board/overview
+
 [2] https://store.rakwireless.com/products/rak811-lpwan-evaluation-board
+
 [3] https://www.mikroe.com/arduino-mega-click-shield
+
 [4] HTU21D click: https://www.mikroe.com/htu21d-click
+
 [5] Weather Click: https://www.mikroe.com/weather-click
+
 [6] Ambient 2 Click: https://www.mikroe.com/ambient-2-click
